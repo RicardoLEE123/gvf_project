@@ -32,6 +32,15 @@ void gvf::init(ros::NodeHandle& nh, const std::string& particle, const std::stri
     nh.param("gvf/gvf_use_kinopath", use_kinopath_, true);
     nh.param("gvf/gvf_use_quad_fit", use_quad_fit_, true);
     nh.param("gvf/gvf_inflation", gvf_.obstacles_inflation_, -1.0);
+    
+    // 读取自适应GVF参数
+    nh.param("gvf/adaptive_enabled", gvf_.adaptive_enabled_, true);
+    nh.param("gvf/convergence_bandwidth", gvf_.convergence_bandwidth_, 0.3);
+    nh.param("gvf/k1_min_scale", gvf_.k1_min_scale_, 0.3);
+    nh.param("gvf/k1_max_scale", gvf_.k1_max_scale_, 1.2);
+    nh.param("gvf/k2_min_scale", gvf_.k2_min_scale_, 0.8);
+    nh.param("gvf/k2_max_scale", gvf_.k2_max_scale_, 1.8);
+    nh.param("gvf/debug_output", gvf_.debug_output_, true);
 
     gvf_.local_bound_inflate_ = std::max(gvf_.resolution_, gvf_.local_bound_inflate_);
     gvf_.resolution_inv_ = 1.0 / gvf_.resolution_;
@@ -491,11 +500,51 @@ Eigen::Vector3d gvf::calcGuidingVectorField3D(const Eigen::Vector3d pos)
     Eigen::Vector3d n = (-grad_out_3d).normalized();        
 
     /* ---------- 2. 由vel_buffer获得切向量 ---------- */
-    Eigen::Vector3d tau = getTangentVector(pos);
+    // Eigen::Vector3d tau = getTangentVector(pos);
+    Eigen::Vector3d tau = estimateTangentViaQuadraticFit(pos);
 
     /* ---------- 3. 计算引导向量 ---------- */
-    Eigen::Vector3d guiding_vec = gvf_.K1_ * tau - gvf_.K2_ * dist * n;
-    // ROS_INFO_STREAM("guiding_vec: " << guiding_vec.transpose());
+    // Eigen::Vector3d guiding_vec = gvf_.K1_ * tau - gvf_.K2_ * dist * n;
+    double r = gvf_.convergence_bandwidth_; // 使用可配置的收敛带宽
+    double s = std::tanh(dist / r);
+    
+    Eigen::Vector3d guiding_vec;
+    
+    if (gvf_.adaptive_enabled_) {
+        // 自适应参数调整：根据距离动态调整K1和K2的影响
+        // 使用sigmoid函数实现更平滑的过渡
+        double normalized_dist = dist / r;
+        double sigmoid_factor = 1.0 / (1.0 + std::exp(normalized_dist - 1.0)); // 在r距离处为0.5
+        
+        // 使用可配置的参数调整范围
+        double k1_min_scale = gvf_.k1_min_scale_;
+        double k1_max_scale = gvf_.k1_max_scale_;
+        double k2_min_scale = gvf_.k2_min_scale_;
+        double k2_max_scale = gvf_.k2_max_scale_;
+        
+        // 计算有效的K1和K2参数
+        double effective_K1 = gvf_.K1_ * (k1_min_scale + (k1_max_scale - k1_min_scale) * sigmoid_factor);
+        double effective_K2 = gvf_.K2_ * (k2_max_scale - (k2_max_scale - k2_min_scale) * sigmoid_factor);
+        
+        // 当距离很远时，确保有足够的吸引力
+        if (dist > 2.0 * r) {
+            effective_K2 = gvf_.K2_ * k2_max_scale;
+        }
+        
+        // 调试输出（可以注释掉以提高性能）
+        if (gvf_.debug_output_) {
+            static int debug_counter = 0;
+            if (++debug_counter % 100 == 0) { // 每100次调用输出一次
+                ROS_INFO_THROTTLE(1.0, "GVF Debug - Dist: %.3f, r: %.3f, sigmoid: %.3f, K1: %.3f->%.3f, K2: %.3f->%.3f", 
+                                 dist, r, sigmoid_factor, gvf_.K1_, effective_K1, gvf_.K2_, effective_K2);
+            }
+        }
+        
+        guiding_vec = effective_K1 * tau - effective_K2 * s * n;
+    } else {
+        // 使用原始的非自适应方法
+        guiding_vec = gvf_.K1_ * tau - gvf_.K2_ * s * n;
+    }
 
     return guiding_vec;
 }

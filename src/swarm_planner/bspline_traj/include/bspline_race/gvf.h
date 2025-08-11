@@ -85,6 +85,13 @@ struct VectorFieldData {
   //GVF GAIN
   double K1_, K2_;
   double K3_, K4_;
+  
+  // 自适应GVF参数
+  bool adaptive_enabled_;
+  double convergence_bandwidth_;
+  double k1_min_scale_, k1_max_scale_;
+  double k2_min_scale_, k2_max_scale_;
+  bool debug_output_;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
