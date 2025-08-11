@@ -10,6 +10,7 @@
         "vector": "cpp",
         "hash_map": "cpp",
         "hash_set": "cpp",
-        "system_error": "cpp"
+        "system_error": "cpp",
+        "random": "cpp"
     }
 }
