@@ -107,7 +107,7 @@
         <param name="planning/planning/opt_maxtime" value="0.02" />
     </node>
 
-    <!-- <node pkg="map_generator" type="local_sensing" name="map_generator" output="screen">
+    <node pkg="map_generator" type="local_sensing" name="map_generator" output="screen">
         <param name="sdf_map/resolution" value="0.1" />
         <param name="sdf_map/map_size_x"   value="$(arg map_size_x_)" /> 
         <param name="sdf_map/map_size_y"   value="$(arg map_size_y_)" /> 
@@ -115,5 +115,5 @@
         <param name="sdf_map/local_update_range_x"  value="$(arg local_update_range_x)" /> 
         <param name="sdf_map/local_update_range_y"  value="$(arg local_update_range_y)" /> 
         <param name="sdf_map/local_update_range_z"  value="$(arg local_update_range_z)" /> 
-    </node> -->
+    </node>
 </launch>
