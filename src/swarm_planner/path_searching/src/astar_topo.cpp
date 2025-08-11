@@ -186,7 +186,7 @@ std::vector<Eigen::Vector3d> AstarTopo::getprunePath() {
     std::vector<Eigen::Vector3d> path = getPath();
     std::vector<Eigen::Vector3d> pruned_path;
     
-    for (size_t i = 0; i < path.size(); i += 1) {
+    for (size_t i = 0; i < path.size(); i += 5) {
         pruned_path.push_back(path[i]);
     }
   

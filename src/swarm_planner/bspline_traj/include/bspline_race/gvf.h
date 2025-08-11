@@ -121,6 +121,7 @@ class gvf
         void publishESDF();
         void publishGVF();
         void publishUpdateRange();
+        void publishPathCylinderVisualization();
         Eigen::Vector3d calcGuidingVectorField2D(const Eigen::Vector3d pos);
         Eigen::Vector3d calcGuidingVectorField3D(const Eigen::Vector3d pos);
         Eigen::Vector3d estimateTangentViaQuadraticFit(const Eigen::Vector3d& pos);

@@ -211,7 +211,7 @@ void gvf_manager::test_cmdCallback(const ros::TimerEvent& event)
 }
 
     void gvf_manager::InitGvf(ros::NodeHandle &nh)
-    {
+{
         try {
             std::string particle_base = "/particle0";
             // //EDT & MAP
@@ -481,54 +481,62 @@ void gvf_manager::KinoPathCallback(const ros::TimerEvent& event)
 
 void gvf_manager::execTimerCallback(const ros::TimerEvent& event)
 {
-    if (use_kinopath_) return;  // 如果使用动力学路径，则不处理A*路径
+    if (use_kinopath_) return;
     if (swarmParticlesManager.empty()) return;
-    
-    auto& pm = swarmParticlesManager[0];
-    if (!pm.receive_startpt) return;
-    
+
     ros::Time current_time = ros::Time::now();
     bool need_replan = false;
-    
-    // 条件1：首先检查碰撞，如果有碰撞直接重规划
-    if (checkCollision()) {
+    std::string trigger_reason = "None";
+
+    auto& pm = swarmParticlesManager[0];
+
+    // 1) 首次触发
+    if (pm.receive_startpt) {
         need_replan = true;
-        ROS_WARN("[GVF] Replan triggered by collision detection");
+        trigger_reason = "receive_startpt";
     }
-    
-    // 条件2：如果没有碰撞，再检查是否到了0.1s
+
+    // 2) 碰撞触发
+    if (!need_replan && checkCollision()) {
+        need_replan = true;
+        trigger_reason = "collision detection";
+    }
+
+    // 3) 定时 + 尾段触发
     if (!need_replan && (current_time - last_replan_time_).toSec() >= 0.1) {
-        // 条件3：到了0.1s，再判断轨迹是否接近末尾
-        // 打印调试信息
-        // ROS_INFO("[GVF DEBUG] pm.last_traj.rows() = %d, current_traj_index_ = %d, pm.last_traj.rows() - 50 = %d", 
-        //          static_cast<int>(pm.last_traj.rows()), current_traj_index_, static_cast<int>(pm.last_traj.rows() - 50));
-        
-        if (pm.last_traj.rows() >= 0 && 
-            current_traj_index_ >= pm.last_traj.rows() - 100) 
-        {
-            need_replan = true;
-            ROS_INFO("[GVF] Replan triggered by trajectory near end after 0.1s");
+        const int rows = pm.last_traj.rows();
+        if (rows > 0) {
+            const int tail_margin = std::min(100, rows-1);
+            const int tail_threshold = rows - 1 - tail_margin;
+            if (current_traj_index_ >= tail_threshold) {
+                need_replan = true;
+                trigger_reason = "trajectory near end after 0.1s";
+            } else {
+                last_replan_time_ = current_time;
+                trigger_reason = "0.1s reached but not near end";
+            }
         } else {
-            // 到了0.1s但轨迹未接近末尾，不进行重规划，只更新时间
-            last_replan_time_ = current_time;
-            ROS_INFO("[GVF] 0.1s reached but trajectory not near end, continue current trajectory");
+            need_replan = true;
+            trigger_reason = "no trajectory yet";
         }
     }
+
+    ROS_INFO_THROTTLE(2.0,
+        "\033[36m[GVF] ExecTimer:\033[0m need_replan=%d, reason=%s, idx=%d, rows=%d",
+        need_replan, trigger_reason.c_str(),
+        current_traj_index_, (int)pm.last_traj.rows());
     
-    // 如果需要重规划，执行astaropt
+    // 4) 执行或不执行重规划
     if (need_replan) {
         astaropt();
         last_replan_time_ = current_time;
-        current_traj_index_ = 0;  // 重置轨迹索引
+        current_traj_index_ = 0;
     } else {
-        // 更新当前轨迹执行位置
         if (pm.last_traj.rows() > 0) {
-            // 根据当前位置更新轨迹索引
             Eigen::Vector3d current_pos(odom_.x(), odom_.y(), odom_.z());
             double min_dist = std::numeric_limits<double>::max();
-            
             for (int i = current_traj_index_; i < pm.last_traj.rows(); ++i) {
-                Eigen::Vector3d traj_point(pm.last_traj(i, 0), pm.last_traj(i, 1), pm.last_traj(i, 2));
+                Eigen::Vector3d traj_point(pm.last_traj(i,0), pm.last_traj(i,1), pm.last_traj(i,2));
                 double dist = (traj_point - current_pos).norm();
                 if (dist < min_dist) {
                     min_dist = dist;
@@ -544,8 +552,6 @@ void gvf_manager::astaropt()
     ros::Time t1 = ros::Time::now();
     
     auto& pm = swarmParticlesManager[0];  
-    if (!pm.receive_startpt) return;
-          
     /*----------- ① A* 搜索路径 -----------*/
     Eigen::Vector3d start_pt;
     
@@ -662,145 +668,11 @@ void gvf_manager::astaropt()
     path_pub.publish(path_msg);
     ros::Time t5 = ros::Time::now();
 
-    ROS_INFO("Timing: A* search: %.3f ms, Traj opt: %.3f ms, Publish: %.3f ms",
-             (t3-t2).toSec()*1000, (t4-t3).toSec()*1000, (t5-t4).toSec()*1000);
-}
-// void gvf_manager::AstarExecCallback(const ros::TimerEvent& event) 
-// {   
-//     ros::Time t1 = ros::Time::now();
+    // ROS_INFO("Timing: A* search: %.3f ms, Traj opt: %.3f ms, Publish: %.3f ms",
+    //          (t3-t2).toSec()*1000, (t4-t3).toSec()*1000, (t5-t4).toSec()*1000);
     
-//     if (use_kinopath_) return;  // 如果使用动力学路径，则不处理A*路径
-//     auto& pm = swarmParticlesManager[0];  
-//     if (!pm.receive_startpt) return;
-          
-//     /*----------- ① A* 搜索路径 -----------*/
-//     Eigen::Vector3d start_pt;
-    
-//     if (pm.is_first_goal) {
-//         // 第一次接收到目标点时，使用当前位置作为起点
-//         start_pt = Eigen::Vector3d(odom_.x()+0.000001, odom_.y()+0.000001, 1.0);
-//         pm.is_first_goal = false;
-//     } else {
-//         // 不是第一次时，找到上一次路径上与当前位置最近的点作为起点
-//         std::vector<Eigen::Vector3d> last_path = pm.geo_path_finder_->getPath();
-//         if (!last_path.empty()) {
-//             double min_dist = std::numeric_limits<double>::max();
-//             Eigen::Vector3d current_pos(odom_.x(), odom_.y(), odom_.z());
-            
-//             for (const auto& pt : last_path) {
-//                 double dist = (pt - current_pos).norm();
-//                 if (dist < min_dist) {
-//                     min_dist = dist;
-//                     start_pt = pt;
-//                 }
-//             }
-//         } else {
-//             // 如果没有上一次路径，使用当前位置
-//             start_pt = Eigen::Vector3d(odom_.x()+0.000001, odom_.y()+0.000001, 1.0);
-//         }
-//     }
-    
-//     Eigen::Vector3d goal_pt = pm.goal_pt;  
-         
-//     //do traj opt here
-//     Eigen::MatrixXd initial_state(3,3),terminal_state(3,3);//初始，结束P V A  
-//     Eigen::Vector3d end_pt, start_v, end_v, start_a;
-//     std::vector<Eigen::Vector3d> initial_ctrl_ps;
-
-//     ros::Time t2 = ros::Time::now();
-//     pm.geo_path_finder_->reset();
-//     pm.geo_path_finder_->search(start_pt, goal_pt, false, -1.0);
-//     std::vector<Eigen::Vector3d> path_points = pm.geo_path_finder_->getprunePath();   
-//     std::vector<Eigen::Vector3d> raw_path = pm.geo_path_finder_->getPath();   
-//     visualizePath(path_points, path_vis, pm.index); 
-//     ros::Time t3 = ros::Time::now();
-
-//     int num_points_to_take = std::min(static_cast<int>(path_points.size()), 10);
-//     for (int i = 0; i < num_points_to_take; ++i) {
-//         initial_ctrl_ps.push_back(path_points[i]);
-//     }
-//     if (initial_ctrl_ps.empty()) {
-//         ROS_INFO("[DEBUG] No new control points, publishing last trajectory");
-//         return;
-//     }
-//     end_pt = initial_ctrl_ps.back();    
-//     initial_state <<    start_pt(0), start_pt(1), start_pt(2),
-//                             0.0, 0.0,0.0,
-//                             0.0, 0.0,0.0;
-//     terminal_state <<   end_pt(0), end_pt(1),end_pt(2),
-//                             0.0, 0.0,0.0,
-//                             0.0, 0.0,0.0;
-//     pm.bspline_opt_->set3DPath2(initial_ctrl_ps);
-//     pm.spline_->setIniandTerandCpsnum(initial_state,terminal_state,pm.bspline_opt_->cps_num_);
-//     if(pm.bspline_opt_->cps_num_ <= 2*pm.spline_->p_)
-//     {
-//         // 如果控制点数量不足，发布path
-//         if (pm.last_traj.rows() > 0) {
-//             nav_msgs::Path path_msg;
-//             path_msg.header.frame_id = "world";
-//             path_msg.header.stamp = ros::Time::now();
-
-//             for (auto pt:raw_path) {
-//                 geometry_msgs::PoseStamped pose;
-//                 pose.pose.position.x = pt.x();
-//                 pose.pose.position.y = pt.y();
-//                 pose.pose.position.z = pt.z();
-//                 path_msg.poses.push_back(pose);
-//             }
-//             path_pub.publish(path_msg);
-//         }
-//         return;
-//     }
-    
-//     UniformBspline spline = *pm.spline_;
-//     pm.bspline_opt_->setSplineParam(spline);
-//     pm.bspline_opt_->optimize();
-
-//     pm.spline_->setControlPoints(pm.bspline_opt_->control_points_);
-//     pm.spline_->getT();
-//     UniformBspline p = *pm.spline_;
-//     //traj
-//     Eigen::MatrixXd p_ = p.getTrajectory(p.time_);
-//     // 保存当前轨迹
-//     pm.last_traj = p_;
-//     ros::Time t4 = ros::Time::now();
-
-//     nav_msgs::Path path_msg;
-//     path_msg.header.frame_id = "world";
-//     path_msg.header.stamp = ros::Time::now();
-
-//     for (int i = 0; i < p_.rows(); ++i) {
-//         geometry_msgs::PoseStamped pose;
-//         pose.pose.position.x = p_(i, 0);
-//         pose.pose.position.y = p_(i, 1);
-//         pose.pose.position.z = p_(i, 2);
-//         path_msg.poses.push_back(pose);
-//     }
-
-//     path_pub.publish(path_msg);
-//     ros::Time t5 = ros::Time::now();
-
-//     ROS_INFO("Timing: A* search: %.3f ms, Traj opt: %.3f ms, Publish: %.3f ms",
-//              (t3-t2).toSec()*1000, (t4-t3).toSec()*1000, (t5-t4).toSec()*1000);
-// }
-
-std::vector<Eigen::Vector3d>
-gvf_manager::correctPathToCenter(const std::vector<Eigen::Vector3d>& raw_path)
-{
-std::vector<Eigen::Vector3d> center;
-const double step = 0.05;      
-
-for (auto p : raw_path)
-{
-    for (int i = 0; i < 7; ++i)                      // 迭代 7 次 ≈ 3 格
-    {
-    Eigen::Vector3d g = esdfGrad(p);               // ∇d(p)
-    if (g.squaredNorm() < 1e-6) break;             // 到脊线
-    p += step * g.normalized();                    // 上山
-    }
-    center.push_back(p);
-}
-return center;     // Γ_c
+    // 重规划完成后，重置receive_startpt标志位
+    pm.receive_startpt = false;
 }
 
 }

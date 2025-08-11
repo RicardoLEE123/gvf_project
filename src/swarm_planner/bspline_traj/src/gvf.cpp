@@ -13,7 +13,6 @@ void gvf::init(ros::NodeHandle& nh, const std::string& particle, const std::stri
     nh.param("sdf_map/local_update_range_x", gvf_.local_update_range_(0), -1.0);
     nh.param("sdf_map/local_update_range_y", gvf_.local_update_range_(1), -1.0);
     nh.param("sdf_map/local_update_range_z", gvf_.local_update_range_(2), -1.0);
-    nh.param("sdf_map/gvf_inflation", gvf_.obstacles_inflation_, -1.0);
 
     nh.param("sdf_map/esdf_slice_height", gvf_.esdf_slice_height_, -0.1);
     nh.param("sdf_map/visualization_truncate_height", gvf_.visualization_truncate_height_, -0.1);
@@ -25,12 +24,14 @@ void gvf::init(ros::NodeHandle& nh, const std::string& particle, const std::stri
     nh.param("sdf_map/frame_id", gvf_.frame_id_, std::string("world"));
     nh.param("sdf_map/local_bound_inflate", gvf_.local_bound_inflate_, 1.0);
     nh.param("sdf_map/local_map_margin", gvf_.local_map_margin_, 1);
-    nh.param("sdf_map/gvf_gain1", gvf_.K1_, 0.0);
-    nh.param("sdf_map/gvf_gain2", gvf_.K2_, 0.0);   
-    nh.param("sdf_map/gvf_k3", gvf_.K3_, 0.01);
-    nh.param("sdf_map/gvf_k4", gvf_.K4_, 0.0001);
-    nh.param("sdf_map/gvf_use_kinopath", use_kinopath_, true);
-    nh.param("sdf_map/gvf_use_quad_fit", use_quad_fit_, true);
+
+    nh.param("gvf/gvf_gain1", gvf_.K1_, 0.0);
+    nh.param("gvf/gvf_gain2", gvf_.K2_, 0.0);   
+    nh.param("gvf/gvf_k3", gvf_.K3_, 0.01);
+    nh.param("gvf/gvf_k4", gvf_.K4_, 0.0001);
+    nh.param("gvf/gvf_use_kinopath", use_kinopath_, true);
+    nh.param("gvf/gvf_use_quad_fit", use_quad_fit_, true);
+    nh.param("gvf/gvf_inflation", gvf_.obstacles_inflation_, -1.0);
 
     gvf_.local_bound_inflate_ = std::max(gvf_.resolution_, gvf_.local_bound_inflate_);
     gvf_.resolution_inv_ = 1.0 / gvf_.resolution_;
@@ -261,6 +262,7 @@ void gvf::pathCallback(const nav_msgs::Path::ConstPtr& msg)
 
     last_path_ = *msg; 
     gvf_.last_camera_pos_ = gvf_.camera_pos_;
+    // ROS_INFO("[GVF] Received path with %zu poses", msg->poses.size());
 
     this->resetBuffer(gvf_.camera_pos_ - gvf_.local_update_range_,
                       gvf_.camera_pos_ + gvf_.local_update_range_);
@@ -361,44 +363,6 @@ void gvf::kinoPathCallback(const nav_msgs::Path::ConstPtr& msg)
     gvf_.esdf_need_update_ = true;
 }
 
-Eigen::Vector3d gvf::calcGuidingVectorField2D(const Eigen::Vector3d pos)
-{
-    /* ---------- 1. 距离 & 反向梯度 ---------- */
-    Eigen::Vector3d grad_out_3d;
-    double dist = getDistWithGradQuadraticFit(pos, grad_out_3d);  // grad_out_3d 是三维梯度
-    Eigen::Vector2d grad_out(grad_out_3d.x(), grad_out_3d.y());
-
-    Eigen::Vector2d n = -grad_out;  // 取反 → 向内法
-    double n_norm = n.norm();
-
-    ROS_INFO_STREAM("dist: " << dist 
-        << ", grad_out: [" << grad_out_3d.x() << ", " 
-                           << grad_out_3d.y() << ", " 
-                           << grad_out_3d.z() << "]");
-
-    if (n_norm < 1e-6)
-        return Eigen::Vector3d::Zero();
-
-    n /= n_norm;  // 单位化
-
-    /* ---------- 2. 2D 旋转 90°：τ = Ẽ · n ---------- *
-     * Ẽ = [[0, -1],
-     *       [1,  0]]
-     * 即 τ = (-n_y, n_x)
-     */
-    Eigen::Vector2d tau(-n.y(), n.x());
-    double tau_norm = tau.norm();
-
-    if (tau_norm < 1e-6)
-        return Eigen::Vector3d::Zero();
-
-    tau /= tau_norm;
-
-    /* ---------- 3. Guiding Vector Field χ = τ - k d n ---------- */
-    Eigen::Vector2d v2d = gvf_.K1_*tau - gvf_.K2_ * dist * n;
-
-    return Eigen::Vector3d(v2d.x(), v2d.y(), 0.0);  // 保持 3D 输出
-}
 
 Eigen::Vector3d gvf::estimateTangentViaQuadraticFit(const Eigen::Vector3d& pos) {
     Eigen::Vector3d tau = Eigen::Vector3d::Zero();
@@ -482,8 +446,11 @@ Eigen::Vector3d gvf::getTangentVector(const Eigen::Vector3d& pos) {
     boundIndex(idx);
     int min_idx = -1;
     double min_dist = std::numeric_limits<double>::max();
+    
     // 2. 在一定范围内搜索最近的占据格子
     int search_range = 20; // 可根据需要调整
+    int found_count = 0;
+    
     for (int dx = -search_range; dx <= search_range; ++dx)
         for (int dy = -search_range; dy <= search_range; ++dy)
             for (int dz = -search_range; dz <= search_range; ++dz) {
@@ -491,6 +458,7 @@ Eigen::Vector3d gvf::getTangentVector(const Eigen::Vector3d& pos) {
                 if (!isInMap(cur_idx)) continue;
                 int cur_addr = toAddress(cur_idx);
                 if (gvf_.occupancy_buffer_inflate_[cur_addr] == 1) {
+                    found_count++;
                     Eigen::Vector3d cur_pos;
                     indexToPos(cur_idx, cur_pos);
                     double dist = (cur_pos - pos).squaredNorm();
@@ -525,16 +493,9 @@ Eigen::Vector3d gvf::calcGuidingVectorField3D(const Eigen::Vector3d pos)
     /* ---------- 2. 由vel_buffer获得切向量 ---------- */
     Eigen::Vector3d tau = getTangentVector(pos);
 
-    /* ---------- 3. 分段引导向量场 ---------- */
-    double ds = 0.2;
-    double mag;
-    if (dist > ds)
-        mag = std::atan(gvf_.K3_ * std::pow(dist, 3));  // 远处使用立方项
-    else
-        mag = std::atan(gvf_.K4_ * dist);               // 近处使用线性项
-
-    Eigen::Vector3d guiding_vec = gvf_.K1_ * tau - gvf_.K2_ * mag * n;
-    // ROS_INFO_STREAM("tau: " << tau.transpose() << ", n: " << n.transpose() << ", dist: " << dist << ", mag: " << mag);
+    /* ---------- 3. 计算引导向量 ---------- */
+    Eigen::Vector3d guiding_vec = gvf_.K1_ * tau - gvf_.K2_ * dist * n;
+    // ROS_INFO_STREAM("guiding_vec: " << guiding_vec.transpose());
 
     return guiding_vec;
 }
@@ -571,7 +532,7 @@ void gvf::resetBuffer(Eigen::Vector3d min_pos, Eigen::Vector3d max_pos) {
 }
 
 void gvf::updateESDFCallback(const ros::TimerEvent& /*event*/) {
-//   if (!gvf_.esdf_need_update_) return;
+  if (!gvf_.esdf_need_update_) return;
 
   /* esdf */
   ros::Time t1, t2;
@@ -585,9 +546,7 @@ void gvf::updateESDFCallback(const ros::TimerEvent& /*event*/) {
   gvf_.max_esdf_time_ = max(gvf_.max_esdf_time_, (t2 - t1).toSec());
 
   if (gvf_.show_esdf_time_)
-    // ROS_WARN("ESDF: cur t = %lf, avg t = %lf, max t = %lf", (t2 - t1).toSec(),
-    //          gvf_.esdf_time_ / gvf_.update_num_, gvf_.max_esdf_time_);
-        ROS_WARN("ESDF: cur t = %lf", (t2 - t1).toSec());
+        ROS_WARN("GVF: cur t = %lf", (t2 - t1).toSec());
 
   gvf_.esdf_need_update_ = false;
 }
@@ -689,7 +648,130 @@ void gvf::visCallback(const ros::TimerEvent& /*event*/) {
     publishMapInflate(false);
     publishUpdateRange();
     publishESDF();
-    publishGVF();  // 添加GVF可视化
+    // publishGVF();  // 添加GVF可视化
+    publishPathCylinderVisualization();  // 添加路径圆柱体可视化
+}
+
+void gvf::publishPathCylinderVisualization() {
+    if (last_path_.poses.empty()) return;
+    
+    // 创建MarkerArray来存储多个圆柱体
+    visualization_msgs::MarkerArray cylinder_array;
+    
+    // 首先添加一个删除所有标记的消息
+    visualization_msgs::Marker delete_marker;
+    delete_marker.header.frame_id = gvf_.frame_id_;
+    delete_marker.header.stamp = ros::Time::now();
+    delete_marker.ns = "path_cylinders";
+    delete_marker.id = 0;
+    delete_marker.action = visualization_msgs::Marker::DELETEALL;
+    cylinder_array.markers.push_back(delete_marker);
+    
+    // 圆柱体参数设置
+    double cylinder_radius = 0.05;  // 圆柱体半径，可以根据需要调整
+    double cylinder_height = 0.1;   // 圆柱体高度，可以根据需要调整
+    
+    // 路径颜色设置（渐变效果）
+    double color_r = 0.0;  // 红色分量
+    double color_g = 1.0;  // 绿色分量
+    double color_b = 0.0;  // 蓝色分量
+    
+    // 遍历路径点，为每两个相邻点创建一个圆柱体
+    for (size_t i = 0; i < last_path_.poses.size() - 1; ++i) {
+        const auto& pose1 = last_path_.poses[i];
+        const auto& pose2 = last_path_.poses[i + 1];
+        
+        // 计算两个点之间的中点
+        Eigen::Vector3d pos1(pose1.pose.position.x, pose1.pose.position.y, pose1.pose.position.z);
+        Eigen::Vector3d pos2(pose2.pose.position.x, pose2.pose.position.y, pose2.pose.position.z);
+        Eigen::Vector3d mid_point = 0.5 * (pos1 + pos2);
+        
+        // 计算两点之间的距离
+        double segment_length = (pos2 - pos1).norm();
+        
+        // 计算圆柱体的方向（从点1指向点2）
+        Eigen::Vector3d direction = (pos2 - pos1).normalized();
+        
+        // 计算圆柱体的旋转（将z轴旋转到direction方向）
+        Eigen::Quaterniond rotation;
+        if (std::abs(direction.z()) > 0.99) {
+            // 如果方向接近垂直，使用特殊处理
+            if (direction.z() > 0) {
+                rotation = Eigen::Quaterniond::Identity();
+            } else {
+                rotation = Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()));
+            }
+        } else {
+            // 计算从z轴到direction的旋转
+            Eigen::Vector3d z_axis(0, 0, 1);
+            Eigen::Vector3d rotation_axis = z_axis.cross(direction);
+            double rotation_angle = acos(z_axis.dot(direction));
+            
+            if (rotation_axis.norm() > 1e-6) {
+                rotation_axis.normalize();
+                rotation = Eigen::Quaterniond(Eigen::AngleAxisd(rotation_angle, rotation_axis));
+            } else {
+                rotation = Eigen::Quaterniond::Identity();
+            }
+        }
+        
+        // 创建圆柱体标记
+        visualization_msgs::Marker cylinder;
+        cylinder.header.frame_id = gvf_.frame_id_;
+        cylinder.header.stamp = ros::Time::now();
+        cylinder.ns = "path_cylinders";
+        cylinder.id = i + 1;  // 从1开始，因为0是删除标记
+        cylinder.type = visualization_msgs::Marker::CYLINDER;
+        cylinder.action = visualization_msgs::Marker::ADD;
+        
+        // 设置圆柱体的位置和方向
+        cylinder.pose.position.x = mid_point.x();
+        cylinder.pose.position.y = mid_point.y();
+        cylinder.pose.position.z = mid_point.z();
+        cylinder.pose.orientation.w = rotation.w();
+        cylinder.pose.orientation.x = rotation.x();
+        cylinder.pose.orientation.y = rotation.y();
+        cylinder.pose.orientation.z = rotation.z();
+        
+        // 设置圆柱体的尺寸
+        cylinder.scale.x = 2.0 * cylinder_radius;  // 直径
+        cylinder.scale.y = 2.0 * cylinder_radius;  // 直径
+        cylinder.scale.z = segment_length;          // 高度为两点间距离
+        
+        // 设置圆柱体的颜色（渐变色效果）
+        double progress = static_cast<double>(i) / static_cast<double>(last_path_.poses.size() - 2);
+
+        if (progress < 0.25) {
+            // 0.0-0.25: 蓝色到青色
+            cylinder.color.r = 0.0;
+            cylinder.color.g = progress * 4.0;  // 0 -> 1
+            cylinder.color.b = 1.0;
+        } else if (progress < 0.5) {
+            // 0.25-0.5: 青色到绿色
+            cylinder.color.r = 0.0;
+            cylinder.color.g = 1.0;
+            cylinder.color.b = 1.0 - (progress - 0.25) * 4.0;  // 1 -> 0
+        } else if (progress < 0.75) {
+            // 0.5-0.75: 绿色到黄色
+            cylinder.color.r = (progress - 0.5) * 4.0;  // 0 -> 1
+            cylinder.color.g = 1.0;
+            cylinder.color.b = 0.0;
+        } else {
+            // 0.75-1.0: 黄色到红色
+            cylinder.color.r = 1.0;
+            cylinder.color.g = 1.0 - (progress - 0.75) * 4.0;  // 1 -> 0
+            cylinder.color.b = 0.0;
+        }
+        
+        cylinder.color.a = 0.9;  // 透明度
+        
+        cylinder_array.markers.push_back(cylinder);
+    }
+    
+    // 发布圆柱体数组
+    gvf_vis_pub_.publish(cylinder_array);
+    
+    // ROS_DEBUG_THROTTLE(2.0, "[GVF] Published %zu path cylinders", cylinder_array.markers.size() - 1);
 }
 
 void gvf::publishMap() 

@@ -441,7 +441,7 @@ namespace FLAG_Race
         }
             // cout<< "optimize successfully~"<<endl;
             // cout << "iner:\n"<<control_points_<<endl;
-            cout<<"iter num :"<<iter_num_<<endl;
+            // cout<<"iter num :"<<iter_num_<<endl;
     }
 
     void bspline_optimizer::publishTrajectory(const std::vector<double>& control_points)
