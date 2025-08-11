@@ -9,8 +9,8 @@
     <arg name="map_size_y_" value="40.0"/>
     <arg name="map_size_z_" value=" 2.35"/>
 
-    <arg name="local_update_range_x" value="5.0"/>
-    <arg name="local_update_range_y" value="5.0"/>
+    <arg name="local_update_range_x" value="2.0"/>
+    <arg name="local_update_range_y" value="2.0"/>
     <arg name="local_update_range_z" value="2.35"/>
     
     <arg name="v_max" value="2.5"/>     
@@ -67,7 +67,7 @@
         <!-- This param decide tracking vel -->
         <param name="sdf_map/gvf_gain1"      value="1.0"/>
         <!-- This param decide backing vel -->
-        <param name="sdf_map/gvf_gain2"      value="-1.0"/>
+        <param name="sdf_map/gvf_gain2"      value="-2.0"/>
         <param name="sdf_map/gvf_inflation"  value="0.099" /> 
         <param name="sdf_map/gvf_use_kinopath" value="false" />
         <param name="sdf_map/gvf_use_quad_fit" value="true"/>

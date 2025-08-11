@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(bspline_race)
 set(CMAKE_CXX_STANDARD 14)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")#debug
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -Wall")
-# add_definitions(-std=c++11 -g -Og -ftree-vectorize -ffast-math -march=native -lpthread)
 find_package(NLopt REQUIRED)
 set(NLopt_INCLUDE_DIRS ${NLOPT_INCLUDE_DIR})
 find_package(catkin REQUIRED COMPONENTS
@@ -39,58 +38,20 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/devel/include
 )
 
-# 定义库 (race和3d版本)
-add_library(bspline_race
-   src/UniformBspline.cpp
-   src/bspline_opt.cpp 
-   src/bspline_race.cpp
-   src/gvf.cpp
-)
-target_link_libraries(bspline_race ${catkin_LIBRARIES})
-
-add_library(bspline_race_3d
+add_library(bspline_gvf
    src/UniformBspline_3d.cpp
    src/bspline_opt_3d.cpp 
-   src/bspline_race_3d.cpp
    src/gvf_manager.cpp
    src/gvf.cpp
 )
-target_link_libraries(bspline_race_3d ${catkin_LIBRARIES})
+target_link_libraries(bspline_gvf ${catkin_LIBRARIES})
 
-# 可执行文件
-add_executable(flag_planner src/test_planning.cpp)
-target_link_libraries(flag_planner 
-    bspline_race
-    ${catkin_LIBRARIES}
-    ${NLOPT_LIBRARIES}
-)
-
-# swarm planning (2D版本)
-add_executable(swarm_planning src/swarm_planning.cpp)
-target_link_libraries(swarm_planning 
-    bspline_race
-    ${catkin_LIBRARIES}
-    ${NLOPT_LIBRARIES}
-)
-
-# swarm planning (3D版本)
-add_executable(swarm_planning_3d src/swarm_planning_3d.cpp)
-target_link_libraries(swarm_planning_3d 
-    bspline_race_3d
-    ${catkin_LIBRARIES}
-    ${NLOPT_LIBRARIES}
-)
 
 add_executable( formation_planning 
     src/formation_planning.cpp
  )
 target_link_libraries(formation_planning 
-bspline_race_3d
+bspline_gvf
  ${catkin_LIBRARIES}
  ${NLOPT_LIBRARIES}
 )
-
-add_executable(traj_server src/traj_server.cpp)
-target_link_libraries(traj_server ${catkin_LIBRARIES})  
-add_executable(traj_saver src/traj_saver.cpp)
-target_link_libraries(traj_saver ${catkin_LIBRARIES})  

@@ -483,7 +483,7 @@ Eigen::Vector3d gvf::getTangentVector(const Eigen::Vector3d& pos) {
     int min_idx = -1;
     double min_dist = std::numeric_limits<double>::max();
     // 2. 在一定范围内搜索最近的占据格子
-    int search_range = 10; // 可根据需要调整
+    int search_range = 20; // 可根据需要调整
     for (int dx = -search_range; dx <= search_range; ++dx)
         for (int dy = -search_range; dy <= search_range; ++dy)
             for (int dz = -search_range; dz <= search_range; ++dz) {

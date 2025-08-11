@@ -1,5 +1,5 @@
-#ifndef  _BSPLINE_OPT_H
-#define  _BSPLINE_OPT_H
+#ifndef  _BSPLINE_OPT_3D_H
+#define  _BSPLINE_OPT_3D_H
 
 //Eigen
 #include <eigen3/Eigen/Eigen>
@@ -22,7 +22,7 @@
 #include <nlopt.hpp>
 
 //自定义
-#include <bspline_race/UniformBspline.h>
+#include <bspline_race/UniformBspline_3d.h>
 #include <plan_env/edt_environment.h>
 #include "common_msgs/Force.h"
 #include "common_msgs/BsplineTraj.h"

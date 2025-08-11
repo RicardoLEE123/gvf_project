@@ -1,4 +1,4 @@
-#include <bspline_race/bspline_opt.h>
+#include <bspline_race/bspline_opt_3d.h>
 
 namespace FLAG_Race
 

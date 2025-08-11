@@ -36,8 +36,8 @@
 #include <std_msgs/String.h>
 
 //自定义
-#include <bspline_race/UniformBspline.h>
-#include <bspline_race/bspline_opt.h>
+#include <bspline_race/UniformBspline_3d.h>
+#include <bspline_race/bspline_opt_3d.h>
 #include "common_msgs/common_msgs.h"
 #include <plan_env/edt_environment.h>
 #include <path_searching/astar_topo.h>
