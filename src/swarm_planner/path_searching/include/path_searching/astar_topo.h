@@ -117,6 +117,9 @@ private:
   double resolution_, inv_resolution_, time_resolution_, inv_time_resolution_;
   Eigen::Vector3d origin_, map_size_3d_;
   double time_origin_;
+  
+  /* path pruning */
+  int path_sample_interval_;
 
   /* helper */
   Eigen::Vector3i posToIndex(Eigen::Vector3d pt);

@@ -156,6 +156,7 @@ void AstarTopo::setParam(ros::NodeHandle& nh) {
   nh.param("astar/lambda_heu", lambda_heu_, -1.0);
   nh.param("astar/margin", margin_, -1.0);
   nh.param("astar/allocate_num", allocate_num_, -1);
+  nh.param("astar/path_sample_interval", path_sample_interval_, 5); // 默认每5个点采样一个
   tie_breaker_ = 1.0 + 1.0 / 10000;
 
   // cout << "margin:" << margin_ << endl;
@@ -186,11 +187,13 @@ std::vector<Eigen::Vector3d> AstarTopo::getprunePath() {
     std::vector<Eigen::Vector3d> path = getPath();
     std::vector<Eigen::Vector3d> pruned_path;
     
-    for (size_t i = 0; i < path.size(); i += 5) {
+    // 使用可配置的采样间隔
+    for (size_t i = 0; i < path.size(); i += path_sample_interval_) {
         pruned_path.push_back(path[i]);
     }
   
-    if (!path.empty() && (path.size() - 1) % 5 != 0) {
+    // 确保包含路径的最后一个点
+    if (!path.empty() && (path.size() - 1) % path_sample_interval_ != 0) {
         pruned_path.push_back(path.back());
     }
 

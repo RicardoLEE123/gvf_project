@@ -19,14 +19,30 @@
   <node name="formation_planning" pkg="bspline_race" type="formation_planning" output="screen">
 
         <!-- Plan Manager -->
-        <!-- <param name="gvf/cloud_topic"      type="string" value="/particle0/local_map" />
-        <param name="gvf/odom_topic"       type="string" value="/particle0/odom" /> -->
         <param name="gvf/cloud_topic"      type="string" value="/drone_1_cloud_registered" />
         <param name="gvf/odom_topic"       type="string" value="/drone_1_visual_slam/odom" />
         <param name="gvf/cmd_topic"       type="string" value="/drone_1_planning/pos_cmd" />
-        <param name="gvf/planInterval"     value="0.2" /> 
-        <param name="gvf/num_points_to_take" value="40" />
+         <param name="gvf/planInterval"     value="0.2" /> 
+        <param name="gvf/num_points_to_take" value="10" />
         <param name="gvf/use_test_cmd" value="false" />
+        <!-- This param decide tracking vel -->
+        <param name="gvf/gvf_gain1"       value="1.0"/>
+        <!-- This param decide backing vel -->
+        <param name="gvf/gvf_gain2"       value="-1.0"/>
+        <param name="gvf/gvf_k3"          value="1.0"/>
+        <param name="gvf/gvf_k4"          value="1.0"/>
+        <param name="gvf/gvf_inflation"  value="0.099" /> 
+        <param name="gvf/gvf_use_kinopath" value="false" />
+        <param name="gvf/gvf_use_quad_fit" value="true"/>
+        <!-- 自适应GVF参数配置 -->
+        <param name="gvf/adaptive_enabled" value="true" />
+        <param name="gvf/convergence_bandwidth" value="0.15" />
+        <param name="gvf/k1_min_scale" value="0.3" />
+        <param name="gvf/k1_max_scale" value="1.2" />
+        <param name="gvf/k2_min_scale" value="0.8" />
+        <param name="gvf/k2_max_scale" value="1.8" />
+        <param name="gvf/debug_output" value="true" />
+
         <!-- SDF Map -->
         <param name="sdf_map/resolution"   value="0.1" /> 
         <param name="sdf_map/map_size_x"   value="$(arg map_size_x_)" /> 
@@ -65,30 +81,13 @@
         <param name="sdf_map/show_esdf_time" value="false"/>
         <param name="sdf_map/pose_type"     value="2"/>  
         <param name="sdf_map/frame_id"      value="world"/>
-
-        <!-- This param decide tracking vel -->
-        <param name="sdf_map/gvf_gain1"      value="1.0"/>
-        <!-- This param decide backing vel -->
-        <param name="sdf_map/gvf_gain2"      value="-1.0"/>
-        <param name="sdf_map/gvf_inflation"  value="0.099" /> 
-        <param name="sdf_map/gvf_use_kinopath" value="false" />
-        
-        <!-- 自适应GVF参数配置 -->
-        <param name="gvf/adaptive_enabled" value="true" />
-        <param name="gvf/convergence_bandwidth" value="0.3" />
-        <param name="gvf/k1_min_scale" value="0.3" />
-        <param name="gvf/k1_max_scale" value="1.2" />
-        <param name="gvf/k2_min_scale" value="0.8" />
-        <param name="gvf/k2_max_scale" value="1.8" />
-        <param name="gvf/debug_output" value="true" />
-
         <!-- geometric path searching -->
         <param name="astar/lambda_heu" value="10.0" type="double"/>
         <param name="astar/resolution_astar" value="0.1" type="double"/>
         <param name="astar/time_resolution" value="0.8" type="double"/>
         <param name="astar/margin" value="0.6" type="double"/>
         <param name="astar/allocate_num" value="1000000" type="int"/>
-
+        <param name="astar/path_sample_interval" value="1" type="int"/>
           <!-- kinodynamic path searching -->
         <param name="search/max_tau" value="0.6" type="double"/>
         <param name="search/init_max_tau" value="0.8" type="double"/>
@@ -111,7 +110,7 @@
         <param name="planning/lambda1" value="10.0" />
         <param name="planning/lambda2" value="0.0001" />
         <param name="planning/lambda3" value="5.0" />
-        <param name="planning/dist_p" value="0.1" />
+        <param name="planning/dist_p" value="0.5" />
         <param name="planning/safe_distance" value="0.5" />
         <param name="planning/planning/opt_maxeval" value="200" />
         <param name="planning/planning/opt_maxtime" value="0.02" />
@@ -125,14 +124,6 @@
         <arg name="init_y" value="$(arg init_y)"/>
         <arg name="init_z" value="$(arg init_z)"/>
     </include>
-    <!-- <node pkg="map_generator" type="local_sensing" name="map_generator" output="screen">
-        <param name="sdf_map/resolution" value="0.1" />
-        <param name="sdf_map/map_size_x"   value="$(arg map_size_x_)" /> 
-        <param name="sdf_map/map_size_y"   value="$(arg map_size_y_)" /> 
-        <param name="sdf_map/map_size_z"   value="$(arg map_size_z_)" /> 
-        <param name="sdf_map/local_update_range_x"  value="$(arg local_update_range_x)" /> 
-        <param name="sdf_map/local_update_range_y"  value="$(arg local_update_range_y)" /> 
-        <param name="sdf_map/local_update_range_z"  value="$(arg local_update_range_z)" /> 
-    </node> -->
+
 
 </launch>

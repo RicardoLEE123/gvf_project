@@ -506,7 +506,7 @@ void gvf_manager::execTimerCallback(const ros::TimerEvent& event)
     if (!need_replan && (current_time - last_replan_time_).toSec() >= 0.1) {
         const int rows = pm.last_traj.rows();
         if (rows > 0) {
-            const int tail_margin = std::min(100, rows-1);
+            const int tail_margin = std::min(200, rows-1);
             const int tail_threshold = rows - 1 - tail_margin;
             if (current_traj_index_ >= tail_threshold) {
                 need_replan = true;
