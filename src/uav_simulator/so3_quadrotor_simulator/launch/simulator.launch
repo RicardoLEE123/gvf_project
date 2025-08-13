@@ -60,7 +60,7 @@
 
   <!-- Obs map-->
   <!-- RViz-->
-    <node pkg ="map_generator" name ="map_pub" type ="map_pub" output = "screen" args="$(find map_generator)/resource/office3.pcd"/>
+    <node pkg ="map_generator" name ="map_pub" type ="map_pub" output = "screen" args="$(find map_generator)/resource/pillar.pcd"/>
    
     <!-- <node pkg="mockamap" type="mockamap_node" name="mockamap_node" output="screen">
         <param name="seed" type="int" value="511"/>

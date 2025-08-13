@@ -75,6 +75,10 @@ class gvf_manager
         int num_points_to_take_;  // 获取的路径点数量
         double exec_timer_interval;  // exec_timer的重规划时间间隔
         double kino_timer_interval;  // kino_timer的重规划时间间隔
+        
+        // 轨迹拼接参数
+        int max_trajectory_concatenation_points_;  // 最大轨迹拼接点数
+        bool enable_trajectory_concatenation_;     // 是否启用轨迹拼接
 
         struct gvfManager {
             std::string index;

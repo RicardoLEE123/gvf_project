@@ -341,7 +341,7 @@ bool gvf_manager::checkCollision()
         
         // 如果距离小于安全阈值，返回true表示有碰撞风险
         if (distance < safe_distance_) {
-            ROS_WARN("[GVF] Collision detected at trajectory point %d, distance: %.3f", i, distance);
+            // ROS_WARN("[GVF] Collision detected at trajectory point %d, distance: %.3f", i, distance);
             return true;
         }
     }
@@ -503,34 +503,37 @@ void gvf_manager::execTimerCallback(const ros::TimerEvent& event)
     }
 
     // 3) 定时 + 尾段触发
-    if (!need_replan && (current_time - last_replan_time_).toSec() >= 0.1) {
-        const int rows = pm.last_traj.rows();
-        if (rows > 0) {
-            const int tail_margin = std::min(200, rows-1);
-            const int tail_threshold = rows - 1 - tail_margin;
-            if (current_traj_index_ >= tail_threshold) {
-                need_replan = true;
-                trigger_reason = "trajectory near end after 0.1s";
-            } else {
-                last_replan_time_ = current_time;
-                trigger_reason = "0.1s reached but not near end";
-            }
-        } else {
-            need_replan = true;
-            trigger_reason = "no trajectory yet";
-        }
+    if (!need_replan && (current_time - last_replan_time_).toSec() >= planInterval) {
+        // const int rows = pm.last_traj.rows();
+        // if (rows > 0) {
+        //     const int tail_margin = std::min(200, rows-1);
+        //     const int tail_threshold = rows - 1 - tail_margin;
+        //     if (current_traj_index_ >= tail_threshold) {
+        //         need_replan = true;
+        //         trigger_reason = "trajectory near end after planInterval";
+        //     } else {
+        //         last_replan_time_ = current_time;
+        //         trigger_reason = "planInterval reached but not near end";
+        //     }
+        // } else {
+        //     need_replan = true;
+        //     trigger_reason = "no trajectory yet";
+        // }
+        need_replan = true;
+        trigger_reason = "planInterval reached";
     }
-
-    ROS_INFO_THROTTLE(2.0,
-        "\033[36m[GVF] ExecTimer:\033[0m need_replan=%d, reason=%s, idx=%d, rows=%d",
-        need_replan, trigger_reason.c_str(),
-        current_traj_index_, (int)pm.last_traj.rows());
     
     // 4) 执行或不执行重规划
     if (need_replan) {
         astaropt();
         last_replan_time_ = current_time;
         current_traj_index_ = 0;
+
+        ROS_INFO_THROTTLE(2.0,
+        "\033[36m[GVF] ExecTimer:\033[0m need_replan=%d, reason=%s, idx=%d, rows=%d",
+        need_replan, trigger_reason.c_str(),
+        current_traj_index_, (int)pm.last_traj.rows());
+
     } else {
         if (pm.last_traj.rows() > 0) {
             Eigen::Vector3d current_pos(odom_.x(), odom_.y(), odom_.z());
