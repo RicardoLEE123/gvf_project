@@ -60,7 +60,7 @@
 
   <!-- Obs map-->
   <!-- RViz-->
-    <node pkg ="map_generator" name ="map_pub" type ="map_pub" output = "screen" args="$(find map_generator)/resource/office.pcd"/>
+    <node pkg ="map_generator" name ="map_pub" type ="map_pub" output = "screen" args="$(find map_generator)/resource/office3.pcd"/>
    
     <!-- <node pkg="mockamap" type="mockamap_node" name="mockamap_node" output="screen">
         <param name="seed" type="int" value="511"/>
@@ -79,7 +79,7 @@
         <param name="attenuation"   type="double" value="0.1"/>
     </node>  -->
   <node name="rviz" pkg="rviz" type="rviz" required="true" args="-d $(find so3_quadrotor_simulator)/config/swarm_rviz.rviz" />
-    
+  <node name="rviz1" pkg="rviz" type="rviz" required="true" args="-d $(find so3_quadrotor_simulator)/config/fpv.rviz" />
  </launch>
 
 
