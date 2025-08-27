@@ -7,7 +7,7 @@
   
   <node pkg="drone_control" type="px4ctrl" name="drone_$(arg drone_id)_px4ctrl_node" output="screen">
     <param name="drone_id" value="$(arg drone_id)"/>
-    <param name="hover_height" type="double" value="1.0"/>
+    <param name="hover_height" type="double" value="$(arg init_z)"/>
     <param name="stop_dist" type="double" value="1"/>
     <param name="max_vel" type="double" value="1.75"/>
     <param name="max_beishu" type="double" value="1.5"/>

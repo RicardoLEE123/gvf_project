@@ -22,8 +22,8 @@
         <param name="gvf/cloud_topic"      type="string" value="/drone_1_cloud_registered" />
         <param name="gvf/odom_topic"       type="string" value="/drone_1_visual_slam/odom" />
         <param name="gvf/cmd_topic"       type="string" value="/drone_1_planning/pos_cmd" />
-         <param name="gvf/planInterval"     value="0.2" /> 
-        <param name="gvf/num_points_to_take" value="10" />
+         <param name="gvf/planInterval"     value="0.5" /> 
+        <param name="gvf/num_points_to_take" value="30" />
         <param name="gvf/use_test_cmd" value="false" />
         <!-- This param decide tracking vel -->
         <param name="gvf/gvf_gain1"       value="1.0"/>
@@ -35,7 +35,7 @@
         <param name="gvf/gvf_use_kinopath" value="false" />
         <param name="gvf/gvf_use_quad_fit" value="true"/>
         <!-- 自适应GVF参数配置 -->
-        <param name="gvf/adaptive_enabled" value="true" />
+        <param name="gvf/adaptive_enabled" value="false" />
         <param name="gvf/convergence_bandwidth" value="0.15" />
         <param name="gvf/k1_min_scale" value="0.3" />
         <param name="gvf/k1_max_scale" value="1.2" />
@@ -81,6 +81,7 @@
         <param name="sdf_map/show_esdf_time" value="false"/>
         <param name="sdf_map/pose_type"     value="2"/>  
         <param name="sdf_map/frame_id"      value="world"/>
+        <param name="sdf_map/buffer_refresh_period" value="3.0" />
         <!-- geometric path searching -->
         <param name="astar/lambda_heu" value="10.0" type="double"/>
         <param name="astar/resolution_astar" value="0.1" type="double"/>

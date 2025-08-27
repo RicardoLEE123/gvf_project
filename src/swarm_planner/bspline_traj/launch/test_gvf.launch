@@ -80,6 +80,7 @@
         <param name="sdf_map/show_esdf_time" value="false"/>
         <param name="sdf_map/pose_type"     value="2"/>  
         <param name="sdf_map/frame_id"      value="world"/>
+        <param name="sdf_map/buffer_refresh_period" value="3.0" />
         <!-- geometric path searching -->
         <param name="astar/lambda_heu" value="10.0" type="double"/>
         <param name="astar/resolution_astar" value="0.1" type="double"/>

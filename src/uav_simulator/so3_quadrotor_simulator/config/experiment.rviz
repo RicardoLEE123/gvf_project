@@ -4,7 +4,6 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Grid1
         - /particles1
         - /global_map1
         - /Marker4
@@ -37,15 +36,6 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 1
-      Class: rviz/Axes
-      Enabled: true
-      Length: 1
-      Name: Axes
-      Radius: 0.10000000149011612
-      Reference Frame: world
-      Show Trail: false
-      Value: true
     - Alpha: 0.5
       Cell Size: 1
       Class: rviz/Grid
@@ -63,6 +53,15 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 100
       Reference Frame: <Fixed Frame>
+      Value: true
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: world
+      Show Trail: false
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
@@ -137,13 +136,13 @@ Visualization Manager:
       Use rainbow: true
       Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /path_vis
       Name: particlepath
       Namespaces:
         {}
       Queue Size: 1000
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /traj_vis
@@ -531,7 +530,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz/Path
       Color: 25; 255; 0
-      Enabled: true
+      Enabled: false
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -550,6 +549,14 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /particle0/path
       Unreliable: false
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /particle0/gvf/vector_field
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -591,7 +598,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 18.678604125976562
+      Distance: 29.739891052246094
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -599,17 +606,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.20691144466400146
-        Y: -0.008616268634796143
-        Z: -4.315691057854565e-07
+        X: 0.22596226632595062
+        Y: -1.3120908737182617
+        Z: 4.82500036014244e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4547958374023438
+      Pitch: 1.269795536994934
       Target Frame: camera_frame
-      Yaw: 3.1422083377838135
+      Yaw: 3.122206449508667
     Saved: ~
 Window Geometry:
   Displays:
@@ -628,4 +635,4 @@ Window Geometry:
     collapsed: true
   Width: 1069
   X: 851
-  Y: 45
+  Y: 27

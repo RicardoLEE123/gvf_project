@@ -94,6 +94,7 @@ void gvf_manager::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
         manager.start_pt = start_pt;
         manager.goal_pt = goal_pt;
         manager.is_first_goal = true;  // 重置标志位
+        manager.receive_goal = true;
     }
 }
 
@@ -104,7 +105,11 @@ void gvf_manager::cmdCallback(const ros::TimerEvent& event)
     ros::Time t_start = ros::Time::now();  // 记录开始时间
     
     if (swarmParticlesManager.empty()) return;
-
+    if (!swarmParticlesManager[0].receive_goal) 
+    {
+        ROS_WARN_THROTTLE(1.0, "[GVF] DO NOT RECEIVE GOAL");
+        return;
+    }
     // 使用第一个粒子的位置信息
     const Eigen::Vector3d& pos = odom_;
     // 计算 GVF 速度

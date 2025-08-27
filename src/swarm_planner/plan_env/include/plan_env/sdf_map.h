@@ -108,6 +108,9 @@ struct MappingParameters {
 
   /* active mapping */
   double unknown_flag_;
+
+  /* buffer refresh */
+  double buffer_refresh_period_;
 };
 
 // intermediate mapping data for fusion, esdf
@@ -250,6 +253,7 @@ private:
   void updateOccupancyCallback(const ros::TimerEvent& /*event*/);
   void updateESDFCallback(const ros::TimerEvent& /*event*/);
   void visCallback(const ros::TimerEvent& /*event*/);
+  void bufferRefreshCallback(const ros::TimerEvent& /*event*/);
 
   // main update process
   void projectDepthImage();
@@ -282,6 +286,7 @@ private:
   ros::Publisher map_pub_, esdf_pub_, map_inf_pub_, update_range_pub_;
   ros::Publisher unknown_pub_, depth_pub_;
   ros::Timer occ_timer_, esdf_timer_, vis_timer_;
+  ros::Timer buffer_timer_;
 
   //
   uniform_real_distribution<double> rand_noise_;

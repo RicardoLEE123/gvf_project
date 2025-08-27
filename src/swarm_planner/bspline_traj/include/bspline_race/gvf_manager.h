@@ -94,6 +94,7 @@ class gvf_manager
             bool is_initialized = false; 
             bool receive_startpt = false;
             bool is_first_goal = true;  // 添加标志位
+            bool receive_goal = false;
             bool is_first_kinogoal = true;
             std::vector<Eigen::Vector3d> last_path;  // 存储上一次的轨迹
             Eigen::MatrixXd last_traj;  // 存储上一次的轨迹矩阵

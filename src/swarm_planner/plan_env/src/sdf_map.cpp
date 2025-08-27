@@ -74,6 +74,7 @@ void SDFMap::initMap(ros::NodeHandle& nh,const std::string& particle, const std:
   nh.param("sdf_map/local_bound_inflate", mp_.local_bound_inflate_, 1.0);
   nh.param("sdf_map/local_map_margin", mp_.local_map_margin_, 1);
   nh.param("sdf_map/ground_height", mp_.ground_height_, 1.0);
+  nh.param("sdf_map/buffer_refresh_period", mp_.buffer_refresh_period_, 0.0);
 
   mp_.local_bound_inflate_ = max(mp_.resolution_, mp_.local_bound_inflate_);
   mp_.resolution_inv_ = 1 / mp_.resolution_;
@@ -137,6 +138,9 @@ void SDFMap::initMap(ros::NodeHandle& nh,const std::string& particle, const std:
   occ_timer_ = nh.createTimer(ros::Duration(0.10), &SDFMap::updateOccupancyCallback, this);
   esdf_timer_ = nh.createTimer(ros::Duration(0.10), &SDFMap::updateESDFCallback, this);
   vis_timer_ = nh.createTimer(ros::Duration(0.10), &SDFMap::visCallback, this);
+  if (mp_.buffer_refresh_period_ > 0.0) {
+    buffer_timer_ = nh.createTimer(ros::Duration(mp_.buffer_refresh_period_), &SDFMap::bufferRefreshCallback, this);
+  }
 
   map_pub_ = nh.advertise<sensor_msgs::PointCloud2>(particle +"sdf_map/occupancy", 10);
   map_inf_pub_ = nh.advertise<sensor_msgs::PointCloud2>(particle +"sdf_map/occupancy_inflate", 10);
@@ -277,6 +281,9 @@ void SDFMap::initMap(ros::NodeHandle& nh) {
   occ_timer_ = nh.createTimer(ros::Duration(0.032), &SDFMap::updateOccupancyCallback, this);
   esdf_timer_ = nh.createTimer(ros::Duration(0.125), &SDFMap::updateESDFCallback, this);
   vis_timer_ = nh.createTimer(ros::Duration(1.0), &SDFMap::visCallback, this);
+  if (mp_.buffer_refresh_period_ > 0.0) {
+    buffer_timer_ = nh.createTimer(ros::Duration(mp_.buffer_refresh_period_), &SDFMap::bufferRefreshCallback, this);
+  }
 
   map_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/sdf_map/occupancy", 10);
   map_inf_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/sdf_map/occupancy_inflate", 10);
@@ -1015,6 +1022,12 @@ void SDFMap::visCallback(const ros::TimerEvent& /*event*/) {
   // publishDepth();
 }
 
+void SDFMap::bufferRefreshCallback(const ros::TimerEvent& /*event*/){
+  if (!md_.has_odom_) return;
+  this->resetBuffer(md_.camera_pos_ - mp_.local_update_range_,
+                    md_.camera_pos_ + mp_.local_update_range_);
+}
+
 void SDFMap::updateOccupancyCallback(const ros::TimerEvent& /*event*/) {
   // if (!md_.occ_need_update_) return;
 
@@ -1116,8 +1129,7 @@ void SDFMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& img) {
 
   if (isnan(md_.camera_pos_(0)) || isnan(md_.camera_pos_(1)) || isnan(md_.camera_pos_(2))) return;
 
-  // this->resetBuffer(md_.camera_pos_ - mp_.local_update_range_,
-  //                   md_.camera_pos_ + mp_.local_update_range_);
+  // buffer will be refreshed periodically by timer if enabled
 
   pcl::PointXYZ pt;
   Eigen::Vector3d p3d, p3d_inf;
