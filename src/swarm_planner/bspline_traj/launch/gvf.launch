@@ -35,8 +35,8 @@
         <param name="gvf/gvf_use_kinopath" value="false" />
         <param name="gvf/gvf_use_quad_fit" value="true"/>
         <!-- GVF局部更新范围参数 -->
-        <param name="gvf/local_update_range_x" value="2.2" />
-        <param name="gvf/local_update_range_y" value="2.2" />
+        <param name="gvf/local_update_range_x" value="1.8" />
+        <param name="gvf/local_update_range_y" value="1.8" />
         <param name="gvf/local_update_range_z" value="2.05" />
         <!-- 碰撞检测参数 -->
         <param name="gvf/collision_threshold" value="0.15" />
