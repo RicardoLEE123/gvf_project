@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
 
     ROS_INFO("[local_sensing] Node initialized. Subscribing to /sim/odom and /mock_map, publishing to /sim/local_map");
 
-    ros::Rate rate(10.0); // 10Hz 发布 local_map
+    ros::Rate rate(10.0);
 
     while (ros::ok()) {
         ros::spinOnce();

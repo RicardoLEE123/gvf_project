@@ -3,8 +3,7 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /global_map1
+      Expanded: ~
       Splitter Ratio: 0.520588219165802
     Tree Height: 723
   - Class: rviz/Selection
@@ -321,13 +320,13 @@ Visualization Manager:
       Unreliable: false
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /particle0/gvf/vector_field
       Name: MarkerArray
       Namespaces:
-        path_cylinders: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -378,26 +377,26 @@ Visualization Manager:
         Min Value: 0.03999999910593033
         Value: true
       Axis: Z
-      Channel Name: intensity
+      Channel Name: z
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: AxisColor
+      Color Transformer: Intensity
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Min Color: 0; 0; 0
+      Max Color: 180; 20; 140
+      Min Color: 0; 255; 255
       Name: PointCloud2
       Position Transformer: XYZ
-      Queue Size: 10
+      Queue Size: 300
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.10000000149011612
-      Style: Flat Squares
+      Style: Points
       Topic: /particle0sdf_map/occupancy_inflate
       Unreliable: false
       Use Fixed Frame: true
-      Use rainbow: true
+      Use rainbow: false
       Value: true
     - Alpha: 1
       Buffer Length: 1
@@ -423,6 +422,22 @@ Visualization Manager:
       Topic: /odom_visualization/path
       Unreliable: false
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /particle0/gvf/traj_vis
+      Name: MarkerArray
+      Namespaces:
+        path_cylinders: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /particle0sdf_map/map_boundary
+      Name: MarkerArray
+      Namespaces:
+        map_boundary: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 238; 238; 236
@@ -463,7 +478,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 31.058481216430664
+      Distance: 34.88839340209961
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -479,9 +494,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4147964715957642
+      Pitch: 1.2647966146469116
       Target Frame: world
-      Yaw: 3.138583183288574
+      Yaw: 3.1285831928253174
     Saved: ~
 Window Geometry:
   Displays:

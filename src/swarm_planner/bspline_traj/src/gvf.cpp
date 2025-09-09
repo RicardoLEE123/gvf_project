@@ -10,9 +10,6 @@ void gvf::init(ros::NodeHandle& nh, const std::string& particle, const std::stri
     nh.param("sdf_map/map_size_x", x_size, -1.0);
     nh.param("sdf_map/map_size_y", y_size, -1.0);
     nh.param("sdf_map/map_size_z", z_size, -1.0);
-    nh.param("sdf_map/local_update_range_x", gvf_.local_update_range_(0), -1.0);
-    nh.param("sdf_map/local_update_range_y", gvf_.local_update_range_(1), -1.0);
-    nh.param("sdf_map/local_update_range_z", gvf_.local_update_range_(2), -1.0);
 
     nh.param("sdf_map/esdf_slice_height", gvf_.esdf_slice_height_, -0.1);
     nh.param("sdf_map/visualization_truncate_height", gvf_.visualization_truncate_height_, -0.1);
@@ -32,6 +29,10 @@ void gvf::init(ros::NodeHandle& nh, const std::string& particle, const std::stri
     nh.param("gvf/gvf_use_kinopath", use_kinopath_, true);
     nh.param("gvf/gvf_use_quad_fit", use_quad_fit_, true);
     nh.param("gvf/gvf_inflation", gvf_.obstacles_inflation_, -1.0);
+    
+    nh.param("gvf/local_update_range_x", gvf_.local_update_range_(0), -1.0);
+    nh.param("gvf/local_update_range_y", gvf_.local_update_range_(1), -1.0);
+    nh.param("gvf/local_update_range_z", gvf_.local_update_range_(2), -1.0);
     
     // 读取自适应GVF参数
     nh.param("gvf/adaptive_enabled", gvf_.adaptive_enabled_, true);
@@ -102,7 +103,8 @@ void gvf::init(ros::NodeHandle& nh, const std::string& particle, const std::stri
     map_inf_pub_ = nh.advertise<sensor_msgs::PointCloud2>(particle +"/gvf/occupancy_inflate", 10);
     esdf_pub_ = nh.advertise<sensor_msgs::PointCloud2>(particle +"/gvf/esdf", 10);
     update_range_pub_ = nh.advertise<visualization_msgs::Marker>(particle +"/gvf/update_range", 10);
-    gvf_vis_pub_ = nh.advertise<visualization_msgs::MarkerArray>(particle +"/gvf/vector_field", 10);
+    gvf_vis_pub_ = nh.advertise<visualization_msgs::MarkerArray>(particle +"/gvf/traj_vis", 10);
+    vector_field_pub_ = nh.advertise<visualization_msgs::MarkerArray>(particle +"/gvf/vector_field", 10);
 }
 
 void gvf::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -689,7 +691,7 @@ void gvf::publishGVF()
     }
 
     // 发布标记数组
-    gvf_vis_pub_.publish(marker_array);
+    vector_field_pub_.publish(marker_array);
 }
 
 void gvf::visCallback(const ros::TimerEvent& /*event*/) {
@@ -697,7 +699,7 @@ void gvf::visCallback(const ros::TimerEvent& /*event*/) {
     publishMapInflate(false);
     publishUpdateRange();
     publishESDF();
-    // publishGVF();  // 添加GVF可视化
+    publishGVF();  // 添加GVF可视化
     publishPathCylinderVisualization();  // 添加路径圆柱体可视化
 }
 

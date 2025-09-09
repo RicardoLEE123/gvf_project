@@ -34,6 +34,10 @@
         <param name="gvf/gvf_inflation"  value="0.099" /> 
         <param name="gvf/gvf_use_kinopath" value="false" />
         <param name="gvf/gvf_use_quad_fit" value="true"/>
+        <!-- GVF局部更新范围参数 -->
+        <param name="gvf/local_update_range_x" value="2.2" />
+        <param name="gvf/local_update_range_y" value="2.2" />
+        <param name="gvf/local_update_range_z" value="2.05" />
         <!-- 自适应GVF参数配置 -->
         <param name="gvf/adaptive_enabled" value="false" />
         <param name="gvf/convergence_bandwidth" value="0.15" />
@@ -81,7 +85,7 @@
         <param name="sdf_map/show_esdf_time" value="false"/>
         <param name="sdf_map/pose_type"     value="2"/>  
         <param name="sdf_map/frame_id"      value="world"/>
-        <param name="sdf_map/buffer_refresh_period" value="3.0" />
+        <param name="sdf_map/buffer_refresh_period" value="5.0" />
         <!-- geometric path searching -->
         <param name="astar/lambda_heu" value="10.0" type="double"/>
         <param name="astar/resolution_astar" value="0.1" type="double"/>

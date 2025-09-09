@@ -146,6 +146,7 @@ void SDFMap::initMap(ros::NodeHandle& nh,const std::string& particle, const std:
   map_inf_pub_ = nh.advertise<sensor_msgs::PointCloud2>(particle +"sdf_map/occupancy_inflate", 10);
   esdf_pub_ = nh.advertise<sensor_msgs::PointCloud2>(particle +"sdf_map/esdf", 10);
   update_range_pub_ = nh.advertise<visualization_msgs::Marker>(particle +"sdf_map/update_range", 10);
+  map_boundary_pub_ = nh.advertise<visualization_msgs::MarkerArray>(particle +"sdf_map/map_boundary", 10);
 
   unknown_pub_ = nh.advertise<sensor_msgs::PointCloud2>(particle +"sdf_map/unknown", 10);
   depth_pub_ = nh.advertise<sensor_msgs::PointCloud2>(particle +"sdf_map/depth_cloud", 10);
@@ -278,9 +279,9 @@ void SDFMap::initMap(ros::NodeHandle& nh) {
   indep_odom_sub_ =
       nh.subscribe<nav_msgs::Odometry>("/particle0/odom", 10, &SDFMap::odomCallback, this);
 
-  occ_timer_ = nh.createTimer(ros::Duration(0.032), &SDFMap::updateOccupancyCallback, this);
-  esdf_timer_ = nh.createTimer(ros::Duration(0.125), &SDFMap::updateESDFCallback, this);
-  vis_timer_ = nh.createTimer(ros::Duration(1.0), &SDFMap::visCallback, this);
+  occ_timer_ = nh.createTimer(ros::Duration(0.10), &SDFMap::updateOccupancyCallback, this);
+  esdf_timer_ = nh.createTimer(ros::Duration(0.10), &SDFMap::updateESDFCallback, this);
+  vis_timer_ = nh.createTimer(ros::Duration(0.10), &SDFMap::visCallback, this);
   if (mp_.buffer_refresh_period_ > 0.0) {
     buffer_timer_ = nh.createTimer(ros::Duration(mp_.buffer_refresh_period_), &SDFMap::bufferRefreshCallback, this);
   }
@@ -289,6 +290,7 @@ void SDFMap::initMap(ros::NodeHandle& nh) {
   map_inf_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/sdf_map/occupancy_inflate", 10);
   esdf_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/sdf_map/esdf", 10);
   update_range_pub_ = nh.advertise<visualization_msgs::Marker>("/sdf_map/update_range", 10);
+  map_boundary_pub_ = nh.advertise<visualization_msgs::MarkerArray>("/sdf_map/map_boundary", 10);
 
   unknown_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/sdf_map/unknown", 10);
   depth_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/sdf_map/depth_cloud", 10);
@@ -341,6 +343,85 @@ void SDFMap::resetBuffer(Eigen::Vector3d min_pos, Eigen::Vector3d max_pos) {
         md_.occupancy_buffer_inflate_[toAddress(x, y, z)] = 0;
         md_.distance_buffer_[toAddress(x, y, z)] = 10000;
       }
+}
+
+void SDFMap::gradualResetBuffer(Eigen::Vector3d min_pos, Eigen::Vector3d max_pos) {
+  // 渐进式清空缓冲区，避免突然清空造成闪烁
+  Eigen::Vector3i min_id, max_id;
+  posToIndex(min_pos, min_id);
+  posToIndex(max_pos, max_id);
+  
+  boundIndex(min_id);
+  boundIndex(max_id);
+  
+  // 计算清空区域的大小
+  int total_voxels = (max_id(0) - min_id(0) + 1) * 
+                    (max_id(1) - min_id(1) + 1) * 
+                    (max_id(2) - min_id(2) + 1);
+  
+  // 使用静态变量跟踪清空进度
+  static int clear_progress = 0;
+  static bool is_clearing = false;
+  
+  // 如果不在清空过程中，开始新的清空周期
+  if (!is_clearing) {
+    clear_progress = 0;
+    is_clearing = true;
+  }
+  
+  // 每次清空一小批体素，实现平滑的淡出效果
+  int clear_batch_size = std::max(1, total_voxels / 20); // 每次清空5%的体素，更平滑
+  int cleared_count = 0;
+  
+  // 从外向内清空，创造更自然的淡出效果
+  int center_x = (min_id(0) + max_id(0)) / 2;
+  int center_y = (min_id(1) + max_id(1)) / 2;
+  int center_z = (min_id(2) + max_id(2)) / 2;
+  
+  for (int x = min_id(0); x <= max_id(0) && cleared_count < clear_batch_size; ++x) {
+    for (int y = min_id(1); y <= max_id(1) && cleared_count < clear_batch_size; ++y) {
+      for (int z = min_id(2); z <= max_id(2) && cleared_count < clear_batch_size; ++z) {
+        // 计算到中心的距离，优先清空边缘的体素
+        int dist_to_center = abs(x - center_x) + abs(y - center_y) + abs(z - center_z);
+        int max_dist = abs(max_id(0) - center_x) + abs(max_id(1) - center_y) + abs(max_id(2) - center_z);
+        
+        // 根据距离和进度决定是否清空
+        bool should_clear = false;
+        if (clear_progress < total_voxels / 4) {
+          // 前25%：清空最外层的体素
+          should_clear = (dist_to_center >= max_dist * 0.7);
+        } else if (clear_progress < total_voxels / 2) {
+          // 25%-50%：清空中间层的体素
+          should_clear = (dist_to_center >= max_dist * 0.4 && dist_to_center < max_dist * 0.7);
+        } else if (clear_progress < total_voxels * 3 / 4) {
+          // 50%-75%：清空内层的体素
+          should_clear = (dist_to_center >= max_dist * 0.1 && dist_to_center < max_dist * 0.4);
+        } else {
+          // 最后25%：清空中心区域的体素
+          should_clear = (dist_to_center < max_dist * 0.1);
+        }
+        
+        if (should_clear) {
+          int idx = toAddress(x, y, z);
+          md_.occupancy_buffer_inflate_[idx] = 0;
+          md_.distance_buffer_[idx] = 10000;
+          cleared_count++;
+        }
+        clear_progress++;
+      }
+    }
+  }
+  
+  // 如果已经清空完所有体素，重置状态
+  if (clear_progress >= total_voxels) {
+    clear_progress = 0;
+    is_clearing = false;
+  }
+  
+  // 如果这次没有清空任何体素且不在清空过程中，说明需要开始新的清空周期
+  if (cleared_count == 0 && !is_clearing) {
+    resetBuffer(min_pos, max_pos);
+  }
 }
 
 template <typename F_get_val, typename F_set_val>
@@ -1016,6 +1097,7 @@ void SDFMap::visCallback(const ros::TimerEvent& /*event*/) {
   publishMap();
   publishMapInflate(false);
   publishUpdateRange();
+  publishMapBoundary();
   publishESDF();
 
   // publishUnknown();
@@ -1024,8 +1106,32 @@ void SDFMap::visCallback(const ros::TimerEvent& /*event*/) {
 
 void SDFMap::bufferRefreshCallback(const ros::TimerEvent& /*event*/){
   if (!md_.has_odom_) return;
-  this->resetBuffer(md_.camera_pos_ - mp_.local_update_range_,
-                    md_.camera_pos_ + mp_.local_update_range_);
+  
+  // 检查无人机是否在移动，如果移动速度过快则延迟清空
+  static Eigen::Vector3d last_camera_pos = md_.camera_pos_;
+  static ros::Time last_check_time = ros::Time::now();
+  
+  ros::Time current_time = ros::Time::now();
+  double time_diff = (current_time - last_check_time).toSec();
+  
+  if (time_diff > 0.1) { // 每0.1秒检查一次移动速度
+    Eigen::Vector3d velocity = (md_.camera_pos_ - last_camera_pos) / time_diff;
+    double speed = velocity.norm();
+    
+    // 如果移动速度过快（>1.0 m/s），延迟清空
+    if (speed > 1.0) {
+      last_camera_pos = md_.camera_pos_;
+      last_check_time = current_time;
+      return;
+    }
+    
+    last_camera_pos = md_.camera_pos_;
+    last_check_time = current_time;
+  }
+  
+  // 渐进式清空缓冲区，避免突然清空造成闪烁
+  this->gradualResetBuffer(md_.camera_pos_ - mp_.local_update_range_,
+                          md_.camera_pos_ + mp_.local_update_range_);
 }
 
 void SDFMap::updateOccupancyCallback(const ros::TimerEvent& /*event*/) {
@@ -1419,6 +1525,82 @@ void SDFMap::publishUpdateRange() {
   mk.pose.orientation.z = 0.0;
 
   update_range_pub_.publish(mk);
+}
+
+void SDFMap::publishMapBoundary() {
+  // 创建红色矩形框显示地图范围（只显示边框，不填充）
+  visualization_msgs::MarkerArray boundary_markers;
+  
+  // 获取地图边界
+  Eigen::Vector3d min_bound = mp_.map_origin_;
+  Eigen::Vector3d max_bound = mp_.map_origin_ + mp_.map_size_;
+  
+  // 创建12条边来构成矩形框
+  std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> edges;
+  
+  // 底面的4条边
+  edges.push_back({Eigen::Vector3d(min_bound(0), min_bound(1), min_bound(2)), 
+                   Eigen::Vector3d(max_bound(0), min_bound(1), min_bound(2))});
+  edges.push_back({Eigen::Vector3d(max_bound(0), min_bound(1), min_bound(2)), 
+                   Eigen::Vector3d(max_bound(0), max_bound(1), min_bound(2))});
+  edges.push_back({Eigen::Vector3d(max_bound(0), max_bound(1), min_bound(2)), 
+                   Eigen::Vector3d(min_bound(0), max_bound(1), min_bound(2))});
+  edges.push_back({Eigen::Vector3d(min_bound(0), max_bound(1), min_bound(2)), 
+                   Eigen::Vector3d(min_bound(0), min_bound(1), min_bound(2))});
+  
+  // 顶面的4条边
+  edges.push_back({Eigen::Vector3d(min_bound(0), min_bound(1), max_bound(2)), 
+                   Eigen::Vector3d(max_bound(0), min_bound(1), max_bound(2))});
+  edges.push_back({Eigen::Vector3d(max_bound(0), min_bound(1), max_bound(2)), 
+                   Eigen::Vector3d(max_bound(0), max_bound(1), max_bound(2))});
+  edges.push_back({Eigen::Vector3d(max_bound(0), max_bound(1), max_bound(2)), 
+                   Eigen::Vector3d(min_bound(0), max_bound(1), max_bound(2))});
+  edges.push_back({Eigen::Vector3d(min_bound(0), max_bound(1), max_bound(2)), 
+                   Eigen::Vector3d(min_bound(0), min_bound(1), max_bound(2))});
+  
+  // 4条垂直边
+  edges.push_back({Eigen::Vector3d(min_bound(0), min_bound(1), min_bound(2)), 
+                   Eigen::Vector3d(min_bound(0), min_bound(1), max_bound(2))});
+  edges.push_back({Eigen::Vector3d(max_bound(0), min_bound(1), min_bound(2)), 
+                   Eigen::Vector3d(max_bound(0), min_bound(1), max_bound(2))});
+  edges.push_back({Eigen::Vector3d(max_bound(0), max_bound(1), min_bound(2)), 
+                   Eigen::Vector3d(max_bound(0), max_bound(1), max_bound(2))});
+  edges.push_back({Eigen::Vector3d(min_bound(0), max_bound(1), min_bound(2)), 
+                   Eigen::Vector3d(min_bound(0), max_bound(1), max_bound(2))});
+  
+  // 为每条边创建一个LINE_LIST标记
+  for (size_t i = 0; i < edges.size(); ++i) {
+    visualization_msgs::Marker edge_marker;
+    edge_marker.header.frame_id = mp_.frame_id_;
+    edge_marker.header.stamp = ros::Time::now();
+    edge_marker.ns = "map_boundary";
+    edge_marker.id = i;
+    edge_marker.type = visualization_msgs::Marker::LINE_LIST;
+    edge_marker.action = visualization_msgs::Marker::ADD;
+    
+    // 设置线条的两个端点
+    geometry_msgs::Point start_point, end_point;
+    start_point.x = edges[i].first(0);
+    start_point.y = edges[i].first(1);
+    start_point.z = edges[i].first(2);
+    end_point.x = edges[i].second(0);
+    end_point.y = edges[i].second(1);
+    end_point.z = edges[i].second(2);
+    
+    edge_marker.points.push_back(start_point);
+    edge_marker.points.push_back(end_point);
+    
+    // 设置线条属性
+    edge_marker.scale.x = 0.05; // 线条宽度
+    edge_marker.color.r = 1.0;  // 红色
+    edge_marker.color.g = 0.0;
+    edge_marker.color.b = 0.0;
+    edge_marker.color.a = 1.0;  // 不透明
+    
+    boundary_markers.markers.push_back(edge_marker);
+  }
+  
+  map_boundary_pub_.publish(boundary_markers);
 }
 
 void SDFMap::publishESDF() {

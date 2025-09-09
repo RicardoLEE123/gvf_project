@@ -101,7 +101,7 @@ class gvf
     public:
         VectorFieldData gvf_;
         ros::Subscriber indep_odom_sub_, indep_cloud_sub_, path_sub_, goal_sub_, kino_path_sub_;
-        ros::Publisher map_pub_, esdf_pub_, map_inf_pub_, update_range_pub_,gvf_vis_pub_;
+        ros::Publisher map_pub_, esdf_pub_, map_inf_pub_, update_range_pub_,gvf_vis_pub_, vector_field_pub_;
         ros::Timer esdf_timer_, vis_timer_;
         nav_msgs::Path last_path_;
         bool use_kinopath_;

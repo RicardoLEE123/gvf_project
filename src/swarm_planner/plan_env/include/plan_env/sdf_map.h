@@ -37,6 +37,7 @@
 #include <ros/ros.h>
 #include <tuple>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -177,6 +178,7 @@ public:
   // occupancy map management
   void resetBuffer();
   void resetBuffer(Eigen::Vector3d min, Eigen::Vector3d max);
+  void gradualResetBuffer(Eigen::Vector3d min, Eigen::Vector3d max);
 
   inline void posToIndex(const Eigen::Vector3d& pos, Eigen::Vector3i& id);
   inline void indexToPos(const Eigen::Vector3i& id, Eigen::Vector3d& pos);
@@ -216,6 +218,7 @@ public:
   void publishMapInflate(bool all_info = false);
   void publishESDF();
   void publishUpdateRange();
+  void publishMapBoundary();
 
   void publishUnknown();
   void publishDepth();
@@ -283,7 +286,7 @@ private:
   SynchronizerImageOdom sync_image_odom_;
 
   ros::Subscriber indep_depth_sub_, indep_odom_sub_, indep_pose_sub_, indep_cloud_sub_;
-  ros::Publisher map_pub_, esdf_pub_, map_inf_pub_, update_range_pub_;
+  ros::Publisher map_pub_, esdf_pub_, map_inf_pub_, update_range_pub_, map_boundary_pub_;
   ros::Publisher unknown_pub_, depth_pub_;
   ros::Timer occ_timer_, esdf_timer_, vis_timer_;
   ros::Timer buffer_timer_;
