@@ -345,7 +345,7 @@ bool gvf_manager::checkCollision()
         double distance = pm.sdf_map_->getDistance(point);
         
         // 如果距离小于安全阈值，返回true表示有碰撞风险
-        if (distance < safe_distance_) {
+        if (distance < 0.05) {
             // ROS_WARN("[GVF] Collision detected at trajectory point %d, distance: %.3f", i, distance);
             return true;
         }
