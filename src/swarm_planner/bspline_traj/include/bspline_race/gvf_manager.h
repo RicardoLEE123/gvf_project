@@ -66,6 +66,7 @@ class gvf_manager
         double init_bias_x, init_bias_y;
         double planInterval;
         double safe_distance_;  // 安全距离参数
+        double collision_threshold_;  // 碰撞检测阈值参数
         ros::Time last_replan_time_;  // 上次重规划时间
         int current_traj_index_;  // 当前轨迹执行索引
         double last_yaw;  // 上次yaw角度

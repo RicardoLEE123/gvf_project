@@ -37,6 +37,8 @@
         <param name="gvf/local_update_range_x" value="3.0" />
         <param name="gvf/local_update_range_y" value="3.0" />
         <param name="gvf/local_update_range_z" value="2.05" />
+        <!-- 碰撞检测参数 -->
+        <param name="gvf/collision_threshold" value="0.15" />
         <!-- 自适应GVF参数配置 -->
         <param name="gvf/adaptive_enabled" value="false" />
         <param name="gvf/convergence_bandwidth" value="0.10" />
@@ -112,9 +114,9 @@
         <param name="planning/TrajSampleRate" value="50" />
         <param name="planning/max_vel" value="$(arg v_max)" />
         <param name="planning/max_acc" value="$(arg a_max)" />
-        <param name="planning/lambda1" value="10.0" />
+        <param name="planning/lambda1" value="5.0" />
         <param name="planning/lambda2" value="0.0001" />
-        <param name="planning/lambda3" value="5.0" />
+        <param name="planning/lambda3" value="10.0" />
         <param name="planning/dist_p" value="0.5" />
         <param name="planning/safe_distance" value="0.4" />
         <param name="planning/planning/opt_maxeval" value="200" />

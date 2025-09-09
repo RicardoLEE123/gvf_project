@@ -15,6 +15,7 @@ namespace FLAG_Race
         nh.param("gvf/exec_timer_interval", exec_timer_interval, 0.2);  // 默认值为0.2秒
         nh.param("gvf/kino_timer_interval", kino_timer_interval, 0.2);  // 默认值为0.2秒
         nh.param("planning/safe_distance", safe_distance_, 0.5);  // 添加安全距离参数读取
+        nh.param("gvf/collision_threshold", collision_threshold_, 0.05);  // 添加碰撞检测阈值参数读取
         nh.param("gvf/use_test_cmd", use_test_cmd_, false);  // 是否使用测试命令模式
         last_replan_time_ = ros::Time(0);  // 初始化上次重规划时间
         current_traj_index_ = 0;  // 初始化当前轨迹索引
@@ -345,7 +346,7 @@ bool gvf_manager::checkCollision()
         double distance = pm.sdf_map_->getDistance(point);
         
         // 如果距离小于安全阈值，返回true表示有碰撞风险
-        if (distance < 0.05) {
+        if (distance < collision_threshold_) {
             // ROS_WARN("[GVF] Collision detected at trajectory point %d, distance: %.3f", i, distance);
             return true;
         }

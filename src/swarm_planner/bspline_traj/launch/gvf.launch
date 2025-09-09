@@ -38,6 +38,8 @@
         <param name="gvf/local_update_range_x" value="2.2" />
         <param name="gvf/local_update_range_y" value="2.2" />
         <param name="gvf/local_update_range_z" value="2.05" />
+        <!-- 碰撞检测参数 -->
+        <param name="gvf/collision_threshold" value="0.15" />
         <!-- 自适应GVF参数配置 -->
         <param name="gvf/adaptive_enabled" value="false" />
         <param name="gvf/convergence_bandwidth" value="0.15" />
